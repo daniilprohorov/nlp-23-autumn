@@ -1,4 +1,3 @@
-from enum import Enum, auto
 import pandas as pd
 import pathlib
 from pathlib import Path
@@ -34,9 +33,9 @@ class Token(NamedTuple):
 
 def tokenize(code):
     token_specification = [
-        ('TIME_12H', r'([0]?[0-9]|1[0-1]):[0-5][0-9]([ \t]*[aApP][ \.]*[mM][ \.]*)*'),
+        ('TIME_12H', r'([0]?[0-9]|1[0-1]):[0-5][0-9]([ \t]*[aApP][ \.]*[mM][ \.]*)*'),  # with AM PM
         ('TIME_24H', r'([0-1]?[0-9]|2[0-3]):[0-5][0-9]'),
-        ('NUMBER', r'\d+(\.\d*)?'),  # Integer or decimal number
+        ('NUMBER', r'\d+(\.\d*)?'),  # Integer or decimal(only with .)
         ('ASSIGN', r':='),  # Assignment operator
         ('COLON', r':'),  # Statement terminator
         ('SEMICOLON', r';'),  # Statement terminator
@@ -78,8 +77,8 @@ def tokenize(code):
             continue
         elif kind == 'SKIP':
             continue
-        elif kind == 'SKIP_SLASHES':
-            continue
+        # elif kind == 'SKIP_SLASHES':
+        #     continue
         elif kind == 'SKIP_POINT_COMMA':
             continue
         elif kind == 'UNDEFINED':
@@ -108,7 +107,7 @@ def str_by_id(id, df):
 # statement = str_by_id(index, df)[1]
 #
 #
-# # time_statements = '11:59 14:25 78:99 12:00am 10:00pm 11:11 am 11:11 pm 11:11 a.m 11:11 AM 11:13 p.m. lol kek (cheburek)'
+# statement = '11:59 14:25 78:99 12:00am 10:00pm 11:11 am 11:11 pm 11:11 \\a.m 11:11 AM 11:13 p.m. lol kek (cheburek)'
 # print(statement)
 # for token in tokenize(statement):
 #     print(token)
@@ -133,7 +132,7 @@ def add_tokens_to_file(tokens, class_id, i):
     for token in tokens:
         filename = str(i) + '.tsv'
         full_path = basePath / filename
-        word = token.value.lower()
+        word = token.value
         stem = stemmer.stem(word)
         lem = lemmer.lemmatize(word)
         token_str = '\t'.join([word, stem, lem])
