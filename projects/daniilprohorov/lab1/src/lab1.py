@@ -10,19 +10,6 @@ from typing import NamedTuple
 import re
 import argparse
 
-nltk.download('wordnet')
-
-lemmer = WordNetLemmatizer()
-stemmer = SnowballStemmer('english')
-
-parser = argparse.ArgumentParser(description='Lab 1 NLP Prohorov Daniil')
-parser.add_argument('filename', type=str,
-                    help='dataset file path')
-parser.add_argument('-n', dest='n', type=int,
-                    help='number of lines to process from dataset')
-
-args = parser.parse_args()
-
 
 class Token(NamedTuple):
     type: str
@@ -87,7 +74,6 @@ def tokenize(code):
         yield Token(kind, value, line_num, column)
 
 
-df = pd.read_csv(args.filename, header=None)
 
 
 def lines(df):
@@ -125,8 +111,13 @@ def loading_indication(msg):
     print(msg + ' ' + symbols[loading_state])
 
 
-def add_tokens_to_file(tokens, class_id, i):
-    dataset_name = args.filename.split('/')[-1].split('.')[0]
+def add_tokens_to_file(filename, tokens, class_id, i):
+    nltk.download('wordnet')
+
+    lemmer = WordNetLemmatizer()
+    stemmer = SnowballStemmer('english')
+
+    dataset_name = filename.split('/')[-1].split('.')[0]
     basePath = Path('..') / 'assets' / 'annotated-corpus' / dataset_name / str(class_id)
     pathlib.Path(basePath).mkdir(parents=True, exist_ok=True)
     for token in tokens:
@@ -140,19 +131,39 @@ def add_tokens_to_file(tokens, class_id, i):
             f.write(token_str)
             f.write('\n')
 
+def exe(filename, n, parser=None):
+    df = pd.read_csv(filename, header=None)
 
-count = None
+    count = None
+    if n is None:
+        count = lines(df)
+    elif n < 0 or n > lines(df):
+        error_msg = "n < 0 or n > {}=lines in dataset".format(lines(df))
+        if parser:
+            parser.error(error_msg)
+        else:
+            raise Exception(error_msg)
+    else:
+        count = n
 
-if args.n is None:
-    count = lines(df)
-elif args.n < 0 or args.n > lines(df):
-    parser.error("n < 0 or n > {}=lines in dataset".format(lines(df)))
-else:
-    count = args.n
+    for i in range(count): # type: ignore
+        class_id, input_str = str_by_id(i, df)
+        tokens = tokenize(input_str)
+        words = [token for token in tokens if token.type == 'WORD']
+        add_tokens_to_file(filename, words, class_id, i)
+        loading_indication(str(i+1) + ' Write words to files...')
 
-for i in range(count):
-    class_id, input_str = str_by_id(i, df)
-    tokens = tokenize(input_str)
-    words = [token for token in tokens if token.type == 'WORD']
-    add_tokens_to_file(words, class_id, i)
-    loading_indication(str(i+1) + ' Write words to files...')
+def main():
+
+    parser = argparse.ArgumentParser(description='Lab 1 NLP Prohorov Daniil')
+    parser.add_argument('filename', type=str,
+                        help='dataset file path')
+    parser.add_argument('-n', dest='n', type=int,
+                        help='number of lines to process from dataset')
+
+    args = parser.parse_args()
+
+    exe(args.filename, args.n, parser)
+
+if __name__ == '__main__':
+    main()
